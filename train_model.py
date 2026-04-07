@@ -2,11 +2,11 @@
 import torch.optim
 import torch.nn as nn
 import time
-from tensorboardX import SummaryWriter
 import os
 import numpy as np
 import random
 from torch.backends import cudnn
+from torch.utils.tensorboard import SummaryWriter
 import Config
 from Load_Dataset import RandomGenerator, ValGenerator, ImageToImage2D, LV2D
 from nets.LViT import LViT

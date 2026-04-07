@@ -1,33 +1,94 @@
 # -*- coding: utf-8 -*-
+import os
+import random
+from typing import Any, Callable
+
+import cv2
 import numpy as np
 import torch
-import random
-from scipy.ndimage.interpolation import zoom
-from torch.utils.data import Dataset
-from torchvision import transforms as T
-from torchvision.transforms import functional as F
-from typing import Callable
-import os
-import cv2
 from scipy import ndimage
-from bert_embedding import BertEmbedding
+from torch.utils.data import Dataset
+
+from text_encoder import CachedTextEncoder, load_report_features, save_report_features
 
 
-def random_rot_flip(image, label):
+def random_rot_flip(image: np.ndarray, label: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     k = np.random.randint(0, 4)
-    image = np.rot90(image, k)
-    label = np.rot90(label, k)
+    image = np.rot90(image, k, axes=(0, 1)).copy()
+    label = np.rot90(label, k, axes=(0, 1)).copy()
     axis = np.random.randint(0, 2)
     image = np.flip(image, axis=axis).copy()
     label = np.flip(label, axis=axis).copy()
     return image, label
 
 
-def random_rotate(image, label):
+def random_rotate(image: np.ndarray, label: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     angle = np.random.randint(-20, 20)
-    image = ndimage.rotate(image, angle, order=0, reshape=False)
-    label = ndimage.rotate(label, angle, order=0, reshape=False)
+    image = ndimage.rotate(image, angle, axes=(0, 1), order=3, reshape=False, mode="nearest")
+    label = ndimage.rotate(label, angle, axes=(0, 1), order=0, reshape=False, mode="nearest")
     return image, label
+
+
+def _ensure_channel_last(array: np.ndarray) -> np.ndarray:
+    if array.ndim == 2:
+        return np.expand_dims(array, axis=-1)
+    return array
+
+
+def _resize_image(image: np.ndarray, output_size: list[int] | tuple[int, int]) -> np.ndarray:
+    height, width = int(output_size[0]), int(output_size[1])
+    if image.shape[0] == height and image.shape[1] == width:
+        return image
+    resized = cv2.resize(image, (width, height), interpolation=cv2.INTER_LINEAR)
+    return _ensure_channel_last(resized)
+
+
+def _resize_mask(mask: np.ndarray, output_size: list[int] | tuple[int, int]) -> np.ndarray:
+    height, width = int(output_size[0]), int(output_size[1])
+    if mask.shape[0] == height and mask.shape[1] == width:
+        return mask
+    resized = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
+    return _ensure_channel_last(resized)
+
+
+def to_long_tensor(mask: np.ndarray) -> torch.Tensor:
+    array = np.asarray(mask)
+    if array.ndim == 3 and array.shape[-1] == 1:
+        array = array[..., 0]
+    return torch.from_numpy(np.ascontiguousarray(array.astype(np.int64)))
+
+
+def _to_image_tensor(image: np.ndarray) -> torch.Tensor:
+    array = np.asarray(image, dtype=np.float32)
+    if array.ndim == 2:
+        array = np.expand_dims(array, axis=-1)
+    if array.max() > 1.0:
+        array = array / 255.0
+    tensor = torch.from_numpy(np.ascontiguousarray(array.transpose(2, 0, 1)))
+    return tensor.float()
+
+
+def _prepare_sample_tensor_dict(sample: dict[str, Any], output_size: list[int] | tuple[int, int]) -> dict[str, Any]:
+    image = sample.get("image")
+    label = sample["label"]
+    text = sample["text"]
+    attributes = sample.get("attributes")
+
+    if image is not None:
+        image = _ensure_channel_last(np.asarray(image))
+        image = _resize_image(image, output_size)
+    label = _ensure_channel_last(np.asarray(label))
+    label = _resize_mask(label, output_size)
+
+    prepared: dict[str, Any] = {
+        "label": to_long_tensor((label > 0).astype(np.uint8)),
+        "text": torch.as_tensor(text, dtype=torch.float32),
+    }
+    if image is not None:
+        prepared["image"] = _to_image_tensor(image)
+    if attributes is not None:
+        prepared["attributes"] = torch.as_tensor(attributes, dtype=torch.float32)
+    return prepared
 
 
 class RandomGenerator(object):
@@ -35,23 +96,22 @@ class RandomGenerator(object):
         self.output_size = output_size
 
     def __call__(self, sample):
-        image, label, text = sample['image'], sample['label'], sample['text']
-        image, label = image.astype(np.uint8), label.astype(np.uint8)
-        image, label = F.to_pil_image(image), F.to_pil_image(label)
-        x, y = image.size
-        if random.random() > 0.5:
+        image = sample.get("image")
+        label = sample["label"]
+        if image is not None:
+            image = _ensure_channel_last(np.asarray(image))
+        label = _ensure_channel_last(np.asarray(label))
+
+        if image is not None and random.random() > 0.5:
             image, label = random_rot_flip(image, label)
-        elif random.random() > 0.5:
+        elif image is not None and random.random() > 0.5:
             image, label = random_rotate(image, label)
 
-        if x != self.output_size[0] or y != self.output_size[1]:
-            image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=3)  # why not 3?
-            label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
-        image = F.to_tensor(image)
-        label = to_long_tensor(label)
-        text = torch.Tensor(text)
-        sample = {'image': image, 'label': label, 'text': text}
-        return sample
+        transformed = dict(sample)
+        if image is not None:
+            transformed["image"] = image
+        transformed["label"] = label
+        return _prepare_sample_tensor_dict(transformed, self.output_size)
 
 
 class ValGenerator(object):
@@ -59,142 +119,237 @@ class ValGenerator(object):
         self.output_size = output_size
 
     def __call__(self, sample):
-        image, label, text = sample['image'], sample['label'], sample['text']
-        image, label = image.astype(np.uint8), label.astype(np.uint8)  # OSIC
-        image, label = F.to_pil_image(image), F.to_pil_image(label)
-        x, y = image.size
-        if x != self.output_size[0] or y != self.output_size[1]:
-            image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=3)  # why not 3?
-            label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
-        image = F.to_tensor(image)
-        label = to_long_tensor(label)
-        text = torch.Tensor(text)
-        sample = {'image': image, 'label': label, 'text': text}
-        return sample
+        return _prepare_sample_tensor_dict(sample, self.output_size)
 
 
-def to_long_tensor(pic):
-    # handle numpy array
-    img = torch.from_numpy(np.array(pic, np.uint8))
-    # backward compatibility
-    return img.long()
+class _BaseTextDataset(Dataset):
+    def __init__(
+        self,
+        task_name: str,
+        row_text: dict[str, str],
+        cache_dir: str | None = None,
+        text_model_name: str | None = None,
+        local_files_only: bool = False,
+        cache_metadata: dict[str, Any] | None = None,
+        max_text_units: int = 10,
+    ) -> None:
+        self.task_name = task_name
+        self.rowtext = row_text
+        self.cache_dir = cache_dir
+        self.text_model_name = text_model_name
+        self.local_files_only = local_files_only
+        self.cache_metadata = cache_metadata
+        self.max_text_units = max_text_units
+        self.text_encoder: CachedTextEncoder | None = None
+
+        if cache_dir is None:
+            self.text_encoder = self._build_text_encoder()
+
+    def _build_text_encoder(self) -> CachedTextEncoder:
+        encoder = CachedTextEncoder(
+            model_name=self.text_model_name or "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext",
+            local_files_only=self.local_files_only,
+        )
+        if self.cache_metadata is None:
+            self.cache_metadata = encoder.cache_metadata(self.max_text_units)
+        return encoder
+
+    def _get_text_encoder(self) -> CachedTextEncoder:
+        if self.text_encoder is None:
+            self.text_encoder = self._build_text_encoder()
+        return self.text_encoder
+
+    def _load_cached_features(self, *sample_ids: str):
+        if not self.cache_dir:
+            return None
+        for sample_id in sample_ids:
+            cached = load_report_features(
+                self.cache_dir,
+                sample_id,
+                expected_metadata=self.cache_metadata,
+            )
+            if cached is not None:
+                return cached
+        return None
+
+    def _get_text_features(self, report: str, *sample_ids: str) -> tuple[torch.Tensor, torch.Tensor]:
+        cached = self._load_cached_features(*sample_ids)
+        if cached is not None:
+            text, attributes, _ = cached
+            return text, attributes
+
+        encoder = self._get_text_encoder()
+        text, attributes = encoder.encode_report(report, max_lines=self.max_text_units)
+        if self.cache_dir:
+            metadata = self.cache_metadata or encoder.cache_metadata(self.max_text_units)
+            for sample_id in sample_ids:
+                save_report_features(self.cache_dir, sample_id, text, attributes, metadata=metadata)
+        return text, attributes
 
 
-def correct_dims(*images):
-    corr_images = []
-    for img in images:
-        if len(img.shape) == 2:
-            corr_images.append(np.expand_dims(img, axis=2))
-        else:
-            corr_images.append(img)
-
-    if len(corr_images) == 1:
-        return corr_images[0]
-    else:
-        return corr_images
-
-
-class LV2D(Dataset):
-    def __init__(self, dataset_path: str, task_name: str, row_text: str, joint_transform: Callable = None,
-                 one_hot_mask: int = False,
-                 image_size: int = 224) -> None:
+class LV2D(_BaseTextDataset):
+    def __init__(
+        self,
+        dataset_path: str,
+        task_name: str,
+        row_text: dict[str, str],
+        joint_transform: Callable = None,
+        one_hot_mask: int = False,
+        image_size: int = 224,
+        cache_dir: str | None = None,
+        text_model_name: str | None = None,
+        local_files_only: bool = False,
+        cache_metadata: dict[str, Any] | None = None,
+        max_text_units: int = 10,
+    ) -> None:
+        super().__init__(
+            task_name=task_name,
+            row_text=row_text,
+            cache_dir=cache_dir,
+            text_model_name=text_model_name,
+            local_files_only=local_files_only,
+            cache_metadata=cache_metadata,
+            max_text_units=max_text_units,
+        )
         self.dataset_path = dataset_path
         self.image_size = image_size
         self.output_path = os.path.join(dataset_path)
-        self.mask_list = os.listdir(self.output_path)
+        self.mask_list = sorted(os.listdir(self.output_path))
         self.one_hot_mask = one_hot_mask
-        self.rowtext = row_text
-        self.task_name = task_name
-        self.bert_embedding = BertEmbedding()
-
-        if joint_transform:
-            self.joint_transform = joint_transform
-        else:
-            to_tensor = T.ToTensor()
-            self.joint_transform = lambda x, y: (to_tensor(x), to_tensor(y))
+        self.joint_transform = joint_transform or ValGenerator(output_size=[image_size, image_size])
 
     def __len__(self):
-        return len(os.listdir(self.output_path))
+        return len(self.mask_list)
+
+    def _resolve_report(self, mask_filename: str) -> str:
+        candidates = [mask_filename, os.path.splitext(mask_filename)[0]]
+        for candidate in candidates:
+            if candidate in self.rowtext:
+                return self.rowtext[candidate]
+        raise KeyError(f"Could not resolve text annotation for mask={mask_filename}")
 
     def __getitem__(self, idx):
+        mask_filename = self.mask_list[idx]
+        mask = cv2.imread(os.path.join(self.output_path, mask_filename), cv2.IMREAD_GRAYSCALE)
+        if mask is None:
+            raise FileNotFoundError(f"Unable to read mask {mask_filename} from {self.output_path}")
+        mask = (mask > 0).astype(np.uint8)
 
-        mask_filename = self.mask_list[idx]  # Co
-        mask = cv2.imread(os.path.join(self.output_path, mask_filename), 0)
-        mask = cv2.resize(mask, (self.image_size, self.image_size))
-        mask[mask <= 0] = 0
-        mask[mask > 0] = 1
-        mask = correct_dims(mask)
-        text = self.rowtext[mask_filename]
-        text = text.split('\n')
-        text_token = self.bert_embedding(text)
-        text = np.array(text_token[0][1])
-        if text.shape[0] > 14:
-            text = text[:14, :]
+        report = self._resolve_report(mask_filename)
+        text, attributes = self._get_text_features(report, mask_filename, os.path.splitext(mask_filename)[0])
+        sample = {"label": mask, "text": text, "attributes": attributes}
+
+        if self.joint_transform:
+            sample = self.joint_transform(sample)
+
         if self.one_hot_mask:
-            assert self.one_hot_mask > 0, 'one_hot_mask must be nonnegative'
-            mask = torch.zeros((self.one_hot_mask, mask.shape[1], mask.shape[2])).scatter_(0, mask.long(), 1)
-
-        sample = {'label': mask, 'text': text}
+            assert self.one_hot_mask > 0, "one_hot_mask must be nonnegative"
+            label = sample["label"]
+            sample["label"] = torch.zeros(
+                (self.one_hot_mask, label.shape[0], label.shape[1]),
+                dtype=torch.float32,
+            ).scatter_(0, label.unsqueeze(0), 1.0)
 
         return sample, mask_filename
 
 
-class ImageToImage2D(Dataset):
-
-    def __init__(self, dataset_path: str, task_name: str, row_text: str, joint_transform: Callable = None,
-                 one_hot_mask: int = False,
-                 image_size: int = 224) -> None:
+class ImageToImage2D(_BaseTextDataset):
+    def __init__(
+        self,
+        dataset_path: str,
+        task_name: str,
+        row_text: dict[str, str],
+        joint_transform: Callable = None,
+        one_hot_mask: int = False,
+        image_size: int = 224,
+        cache_dir: str | None = None,
+        text_model_name: str | None = None,
+        local_files_only: bool = False,
+        cache_metadata: dict[str, Any] | None = None,
+        max_text_units: int = 10,
+    ) -> None:
+        super().__init__(
+            task_name=task_name,
+            row_text=row_text,
+            cache_dir=cache_dir,
+            text_model_name=text_model_name,
+            local_files_only=local_files_only,
+            cache_metadata=cache_metadata,
+            max_text_units=max_text_units,
+        )
         self.dataset_path = dataset_path
         self.image_size = image_size
-        self.input_path = os.path.join(dataset_path, 'img')
-        self.output_path = os.path.join(dataset_path, 'labelcol')
-        self.images_list = os.listdir(self.input_path)
-        self.mask_list = os.listdir(self.output_path)
+        self.input_path = os.path.join(dataset_path, "img")
+        self.output_path = os.path.join(dataset_path, "labelcol")
+        self.images_list = sorted(os.listdir(self.input_path))
+        self.mask_list = sorted(os.listdir(self.output_path))
         self.one_hot_mask = one_hot_mask
-        self.rowtext = row_text
-        self.task_name = task_name
-        self.bert_embedding = BertEmbedding()
-
-        if joint_transform:
-            self.joint_transform = joint_transform
-        else:
-            to_tensor = T.ToTensor()
-            self.joint_transform = lambda x, y: (to_tensor(x), to_tensor(y))
+        self.joint_transform = joint_transform or ValGenerator(output_size=[image_size, image_size])
 
     def __len__(self):
-        return len(os.listdir(self.input_path))
+        return len(self.images_list)
+
+    def _resolve_mask_filename(self, image_filename: str) -> str:
+        image_stem = os.path.splitext(image_filename)[0]
+        candidates = [
+            f"{image_stem}.png",
+            f"{image_stem}.jpg",
+            f"{image_stem}.jpeg",
+            image_filename,
+            image_filename.replace("mask_", ""),
+            image_filename.replace(".tif", ".png"),
+            image_filename.replace(".tiff", ".png"),
+        ]
+        for candidate in candidates:
+            if candidate in self.mask_list:
+                return candidate
+        raise FileNotFoundError(f"Could not resolve mask for image {image_filename} in {self.output_path}")
+
+    def _resolve_report(self, image_filename: str, mask_filename: str) -> str:
+        candidates = [
+            mask_filename,
+            image_filename,
+            os.path.splitext(mask_filename)[0],
+            os.path.splitext(image_filename)[0],
+        ]
+        for candidate in candidates:
+            if candidate in self.rowtext:
+                return self.rowtext[candidate]
+        raise KeyError(f"Could not resolve text annotation for image={image_filename}, mask={mask_filename}")
 
     def __getitem__(self, idx):
+        image_filename = self.images_list[idx]
+        mask_filename = self._resolve_mask_filename(image_filename)
 
-        image_filename = self.images_list[idx]  # MoNuSeg
-        mask_filename = image_filename[: -3] + "png"  # MoNuSeg
-        # mask_filename = self.mask_list[idx]  # Covid19
-        # image_filename = mask_filename.replace('mask_', '')  # Covid19
-        image = cv2.imread(os.path.join(self.input_path, image_filename))
-        image = cv2.resize(image, (self.image_size, self.image_size))
+        image = cv2.imread(os.path.join(self.input_path, image_filename), cv2.IMREAD_COLOR)
+        if image is None:
+            raise FileNotFoundError(f"Unable to read image {image_filename} from {self.input_path}")
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # read mask image
-        mask = cv2.imread(os.path.join(self.output_path, mask_filename), 0)
-        mask = cv2.resize(mask, (self.image_size, self.image_size))
-        mask[mask <= 0] = 0
-        mask[mask > 0] = 1
+        mask = cv2.imread(os.path.join(self.output_path, mask_filename), cv2.IMREAD_GRAYSCALE)
+        if mask is None:
+            raise FileNotFoundError(f"Unable to read mask {mask_filename} from {self.output_path}")
+        mask = (mask > 0).astype(np.uint8)
 
-        # correct dimensions if needed
-        image, mask = correct_dims(image, mask)
-        text = self.rowtext[mask_filename]
-        text = text.split('\n')
-        text_token = self.bert_embedding(text)
-        text = np.array(text_token[0][1])
-        if text.shape[0] > 10:
-            text = text[:10, :]
-
-        if self.one_hot_mask:
-            assert self.one_hot_mask > 0, 'one_hot_mask must be nonnegative'
-            mask = torch.zeros((self.one_hot_mask, mask.shape[1], mask.shape[2])).scatter_(0, mask.long(), 1)
-
-        sample = {'image': image, 'label': mask, 'text': text}
+        report = self._resolve_report(image_filename, mask_filename)
+        text, attributes = self._get_text_features(
+            report,
+            mask_filename,
+            image_filename,
+            os.path.splitext(mask_filename)[0],
+            os.path.splitext(image_filename)[0],
+        )
+        sample = {"image": image, "label": mask, "text": text, "attributes": attributes}
 
         if self.joint_transform:
             sample = self.joint_transform(sample)
+
+        if self.one_hot_mask:
+            assert self.one_hot_mask > 0, "one_hot_mask must be nonnegative"
+            label = sample["label"]
+            sample["label"] = torch.zeros(
+                (self.one_hot_mask, label.shape[0], label.shape[1]),
+                dtype=torch.float32,
+            ).scatter_(0, label.unsqueeze(0), 1.0)
 
         return sample, image_filename

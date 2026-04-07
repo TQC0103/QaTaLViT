@@ -26,7 +26,7 @@ pretrain = False
 task_name = 'MoNuSeg' 
 # task_name = 'Covid19'
 learning_rate = 1e-3  # MoNuSeg: 1e-3, Covid19: 3e-4
-batch_size = 2  # For LViT-T, 2 is better than 4
+batch_size = 16  # Legacy baseline default; improved SSL path uses train_improved_ssl.py
 
 model_name = 'LViT'
 # model_name = 'LViT_pretrain'

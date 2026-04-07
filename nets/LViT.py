@@ -97,7 +97,7 @@ class LViT(nn.Module):
         self.up1 = UpblockAttention(in_channels * 2, in_channels, nb_Conv=2)
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1, 1), stride=(1, 1))
         self.last_activation = nn.Sigmoid()  # if using BCELoss
-        self.multi_activation = nn.Softmax()
+        self.multi_activation = nn.Softmax(dim=1)
         self.reconstruct1 = Reconstruct(in_channels=64, out_channels=64, kernel_size=1, scale_factor=(16, 16))
         self.reconstruct2 = Reconstruct(in_channels=128, out_channels=128, kernel_size=1, scale_factor=(8, 8))
         self.reconstruct3 = Reconstruct(in_channels=256, out_channels=256, kernel_size=1, scale_factor=(4, 4))

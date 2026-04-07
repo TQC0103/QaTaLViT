@@ -1,0 +1,39 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.tmp_*/
+dist/
+
+# Local datasets and experiment outputs
+data/
+runs/
+outputs/
+checkpoints/
+
+# Large model artifacts
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Local credentials and notebook cache
+kaggle.json
+.kaggle/
+.ipynb_checkpoints/
+
+# LaTeX auxiliary/build artifacts
+report/build/
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
