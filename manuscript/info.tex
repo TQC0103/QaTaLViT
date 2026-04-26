@@ -1,0 +1,40 @@
+﻿% ======================
+% General information page
+% ======================
+\thispagestyle{empty}
+
+\begin{center}
+  {\fontsize{16pt}{18pt}\selectfont\bfseries THÔNG TIN CHUNG}
+\end{center}
+
+\vspace{0.6cm}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{4.2cm}X@{}}
+  Tên môn học: & \coursename \\
+  Mã môn học: & \coursecode \\
+  Lớp: & \classname \\
+  Học kỳ: & \semester \\
+  Năm học: & \academicyear \\
+  Giảng viên hướng dẫn: & \advisorone; \advisortwo; \advisorthree \\
+  Bộ môn / Khoa: & \advisoroneDepartment, \advisoroneFaculty \\
+  Sinh viên thực hiện: & \studentone{} (\studentoneid), \studenttwo{} (\studenttwoid) \\
+  Email sinh viên: & \studentoneemail{}; \studenttwoemail{} \\
+  Số điện thoại: & \studentonephone{}; \studenttwophone{} \\
+  Tên đề tài: & QaTaLViT: phân đoạn ảnh y khoa kết hợp văn bản trong điều kiện nhãn hạn chế \\
+  Bài báo nền tảng mà nghiên cứu này cải tiến: & \textit{LViT: Language Meets Vision Transformer in Medical Image Segmentation} \\
+  Tập dữ liệu đánh giá: & QaTa-COV19 gồm ảnh X-quang, mặt nạ tổn thương và mô tả văn bản ngắn; MosMedData+ gồm CT lát cắt, mặt nạ tổn thương và mô tả văn bản mà LViT cung cấp \\
+  Mã nguồn dự án: & \url{https://github.com/TQC0103/QaTaLViT} \\
+  Link video trình bày: & \url{https://www.youtube.com/watch?v=x6tsAScKH-U&feature=youtu.be} \\
+  Kết quả chính: & Trên QaTa-COV19, Dice/mIoU đạt 82.22\%/73.35\% (25\% nhãn), 84.03\%/75.62\% (50\% nhãn), và 85.28\%/77.25\% (100\% nhãn), đều cao hơn các mốc LViT-T tương ứng trong bảng đối sánh. Trên MosMedData+, báo cáo dùng thí nghiệm mở rộng 50\% nhãn; mốc tốt nhất hiện tại đạt 73.84\%/60.31\%, nhỉnh hơn LViT-T về Dice \\
+\end{tabularx}
+  
+\vspace{0.8cm}
+
+{\bfseries Thông tin đề tài}
+
+\begin{itemize}
+  \item \textbf{Mục tiêu:} xây dựng một mô hình phân đoạn ảnh y khoa khai thác đồng thời ảnh và mô tả văn bản, đánh giá đầy đủ trên QaTa-COV19 ở các mức nhãn 25\%, 50\% và 100\%, đồng thời mở rộng thử nghiệm sang MosMedData+ ở mức 50\% nhãn.
+\item \textbf{Ý tưởng chính của QaTaLViT:} chuẩn hóa mô tả y khoa thành prompt có cấu trúc, dùng trục U-Net để giữ chi tiết ảnh, đưa văn bản vào nhiều mức đặc trưng bằng LVFusionStage/cross-attention, và kiểm soát học bán giám sát bằng EMA teacher, EPI, confidence mask, Focal Tversky và loss căn chỉnh ảnh--văn bản.
+  \item \textbf{Kết luận thực nghiệm nổi bật:} QaTaLViT cải thiện rõ trên QaTa-COV19 ở cả 25\%, 50\% và 100\% nhãn; trên MosMedData+ 50\% nhãn, cấu hình tốt nhất hiện tại đạt 73.84\% Dice và 60.31\% mIoU, vượt mốc LViT-T về Dice. Mức 50\% được chọn cho MosMedData+ vì cân bằng giữa mặt nạ thật và dữ liệu chưa nhãn, phù hợp với mục tiêu kiểm tra pseudo-label.
+\end{itemize}

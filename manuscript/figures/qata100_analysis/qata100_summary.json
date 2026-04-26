@@ -1,0 +1,12 @@
+{
+  "best_val_epoch": 43,
+  "best_val_dice": 0.8286333960031946,
+  "best_val_iou": 0.735210868468061,
+  "final_epoch": 60,
+  "final_train_dice": 0.8944995452960333,
+  "final_val_dice": 0.8295129708596424,
+  "final_test_dice": 0.8527972377762657,
+  "final_train_iou": 0.8217193782329559,
+  "final_val_iou": 0.7372448588268502,
+  "final_test_iou": 0.7725224484214837
+}

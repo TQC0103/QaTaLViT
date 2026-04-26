@@ -1,2 +1,15 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalize text files to LF in the repository.
+* text=auto eol=lf
+
+# Keep binary research artifacts untouched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tif binary
+*.tiff binary
+*.pdf binary
+*.xlsx binary
+*.pt binary
+*.pth binary
+*.ckpt binary
+*.safetensors binary

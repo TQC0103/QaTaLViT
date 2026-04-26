@@ -1,0 +1,565 @@
+% !TEX TS-program = xelatex
+% !TEX encoding = UTF-8 Unicode
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{caption}[numbered]
+
+\usepackage{fontspec}
+\setsansfont{Latin Modern Sans}
+\setmainfont{Latin Modern Roman}
+\setmonofont{Latin Modern Mono}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+
+\definecolor{accentblue}{RGB}{22,58,105}
+\definecolor{accentteal}{RGB}{20,122,112}
+\definecolor{accentorange}{RGB}{232,116,28}
+\definecolor{softblue}{RGB}{238,246,255}
+\definecolor{ink}{RGB}{25,33,45}
+
+\setbeamercolor{title}{fg=white}
+\setbeamercolor{subtitle}{fg=white}
+\setbeamercolor{frametitle}{fg=white,bg=accentblue}
+\setbeamercolor{structure}{fg=accentblue}
+\setbeamercolor{block title}{fg=white,bg=accentblue}
+\setbeamercolor{block body}{fg=ink,bg=softblue}
+
+\newcommand{\reportclaim}[1]{%
+  \vspace{0.10cm}
+  {\large\bfseries\color{accentblue}#1\par}
+  \vspace{0.08cm}
+}
+
+\newcommand{\smallnote}[1]{%
+  \par
+  \vspace{0.12cm}
+  {\footnotesize\color{ink}#1\par}
+}
+
+\newcommand{\widefig}[2][0.66\textheight]{%
+  \makebox[\textwidth][c]{\includegraphics[width=0.96\textwidth,height=#1,keepaspectratio]{#2}}%
+}
+
+\newcommand{\twocolsummary}[4]{%
+  \begin{columns}[T,totalwidth=\textwidth]
+    \begin{column}{0.49\textwidth}
+      \begin{block}{#1}
+        #2
+      \end{block}
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      \begin{block}{#3}
+        #4
+      \end{block}
+    \end{column}
+  \end{columns}
+}
+
+\title[QaTaLViT]{QaTaLViT}
+\subtitle{Tóm tắt high-level toàn bộ report}
+\author[23127016 -- 23127333]{Lưu Huy Minh Quang -- 23127016\\Trương Quốc Cường -- 23127333}
+\institute[HCMUS]{Trường Đại học Khoa học Tự nhiên -- ĐHQG TP.HCM}
+\date{}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \centering
+  \vspace{0.85cm}
+  \makebox[\textwidth][c]{%
+    \begin{beamercolorbox}[wd=0.88\textwidth,rounded=true,sep=0.42cm,center]{frametitle}
+      {\LARGE\bfseries QaTaLViT\par}
+      \vspace{0.20cm}
+      {\large Tóm tắt high-level toàn bộ report\par}
+    \end{beamercolorbox}%
+  }
+  \vspace{0.35cm}
+  {\large Lưu Huy Minh Quang -- 23127016\par}
+  \vspace{0.12cm}
+  {\large Trương Quốc Cường -- 23127333\par}
+  \vspace{0.18cm}
+  {\normalsize Trường Đại học Khoa học Tự nhiên -- ĐHQG TP.HCM\par}
+\end{frame}
+
+\begin{frame}{Luận điểm trung tâm của report}
+  \reportclaim{Phân đoạn y khoa ít nhãn không chỉ thiếu dữ liệu, mà còn thiếu ngữ cảnh.}
+  \begin{itemize}
+    \item Ảnh y khoa thường có biên mờ, vùng tổn thương nhỏ, dễ lẫn với nền và thay đổi theo nguồn chụp.
+    \item Mask pixel-level rất đắt vì cần chuyên gia khoanh vùng; vì vậy các thiết lập 25\% và 50\% nhãn có ý nghĩa thực tế.
+    \item Văn bản lâm sàng đi kèm ảnh là nguồn tri thức rẻ hơn mask, thường chứa gợi ý về bên tổn thương, vị trí, số vùng và mức lan tỏa.
+    \item QaTaLViT đặt câu hỏi: làm sao biến văn bản ngắn đó thành tín hiệu ổn định để hỗ trợ ảnh, thay vì chỉ thêm một nhánh NLP nặng.
+  \end{itemize}
+  \smallnote{Vai trò của report: chứng minh hướng ảnh--văn bản có ích trên QaTa-COV19 và bắt đầu tổng quát sang MosMedData+.}
+\end{frame}
+
+\begin{frame}{Bảng định vị phương pháp}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.14}
+  \begin{tabularx}{\textwidth}{@{}lXXX@{}}
+    \toprule
+    \textbf{Hướng} & \textbf{Vai trò ảnh} & \textbf{Vai trò văn bản} & \textbf{Giới hạn} \\
+    \midrule
+    Ảnh đơn & Nguồn tín hiệu chính để học biên và vùng tổn thương & Không dùng & Bỏ qua gợi ý giải phẫu trong mô tả ảnh \\
+    Thị giác--ngôn ngữ tự nhiên & Căn chỉnh qua truy vấn/mô tả đối tượng & Truy vấn định danh đối tượng & Căn chỉnh từ-ngữ tới-pixel chưa hợp với báo cáo y khoa ngắn \\
+    LViT & Nhánh CNN--Transformer giữ vai trò chính & Hỗ trợ hợp nhất đặc trưng và EPI/LV loss & PLAM và LV loss còn phụ thuộc khuôn mẫu \\
+    QaTaLViT & U-Net giữ chi tiết biên và hình dạng tổn thương & Prompt ổn định, hợp nhất đa mức và hỗ trợ nhãn giả & Cần prompt nhất quán khi chuyển sang báo cáo tự do \\
+    \bottomrule
+  \end{tabularx}
+  \smallnote{Bảng này đặt QaTaLViT như một bước tiếp nối của LViT, nhưng nhấn mạnh prompt chuẩn hóa và hợp nhất đa mức.}
+\end{frame}
+
+\begin{frame}{Bảng quy mô dữ liệu}
+  \centering
+  \renewcommand{\arraystretch}{1.18}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Tập dữ liệu} & \textbf{QaTa-COV19} & \textbf{MosMedData+} \\
+    \midrule
+    Loại ảnh & X-quang ngực & CT lát cắt \\
+    Huấn luyện & 5716 & 2183 \\
+    Kiểm định & 1429 & 273 \\
+    Kiểm tra & 2113 & 273 \\
+    Tổng & 9258 & 2729 \\
+    Mức nhãn báo cáo & 25\%, 50\%, 100\% & 50\% mở rộng \\
+    \bottomrule
+  \end{tabular}
+  \smallnote{QaTa-COV19 là miền X-quang chính; MosMedData+ dùng để kiểm tra chuyển miền sang CT ở mức 50\% nhãn, nơi mask thật và dữ liệu chưa nhãn cân bằng nhất.}
+\end{frame}
+
+\begin{frame}{Từ LViT đến QaTaLViT}
+  \twocolsummary
+  {Kế thừa từ LViT}
+  {
+    \begin{itemize}
+      \item Dùng văn bản để bổ sung ngữ cảnh cho ảnh.
+      \item Giữ tinh thần học bán giám sát bằng teacher EMA và pseudo-label.
+      \item Đánh giá trong điều kiện nhãn hạn chế.
+    \end{itemize}
+  }
+  {Điều chỉnh trong QaTaLViT}
+  {
+    \begin{itemize}
+      \item Chuẩn hóa prompt trước khi mã hóa văn bản.
+      \item Hợp nhất ảnh--văn bản ở nhiều mức trên trục U-Net.
+      \item Dùng loss/recipe ổn định hơn: BCE, Dice, Focal Tversky và căn chỉnh ảnh--văn bản.
+    \end{itemize}
+  }
+  \vspace{0.18cm}
+  \smallnote{Thông điệp chính: đóng góp không nằm ở việc thêm văn bản một cách cơ học, mà ở cách tổ chức văn bản thành tín hiệu thị giác hữu ích.}
+\end{frame}
+
+\begin{frame}{Bảng đối chiếu LViT và QaTaLViT}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.13}
+  \begin{tabularx}{\textwidth}{@{}lXXX@{}}
+    \toprule
+    \textbf{Khía cạnh} & \textbf{LViT gốc} & \textbf{QaTaLViT} & \textbf{Hệ quả kỳ vọng} \\
+    \midrule
+    Biểu diễn văn bản & Lớp nhúng cho mô tả có cấu trúc & BiomedBERT hoặc NoBERT + BiGRU & So sánh encoder y sinh với encoder nhẹ \\
+    Tương tác ảnh--văn bản & Double-U lai CNN--Transformer với PLAM & Bốn LVFusionStage trên đặc trưng mã hóa & Hợp nhất đa mức nhưng giữ trục U-Net \\
+    Bộ giải mã & Decoder lai CNN--Transformer với PLAM ở skip & Decoder U-Net dùng skip đã tinh chỉnh bởi văn bản & Khôi phục mask bằng decoder gọn hơn \\
+    Học bán giám sát & EPI/EMA và LV loss theo khuôn mẫu & EMA 0.999, EPI 0.99, pseudo-label theo ngưỡng và confidence mask & Kiểm soát trực tiếp độ tin cậy nhãn giả \\
+    \bottomrule
+  \end{tabularx}
+\end{frame}
+
+\begin{frame}{Pipeline mô hình: bốn phần chính}
+  \reportclaim{Ảnh giữ hình dạng mask; văn bản bổ sung ngữ cảnh về vị trí và mức độ tổn thương.}
+  \begin{enumerate}
+    \item \textbf{Nhánh văn bản:} mô tả lâm sàng ngắn được chuẩn hóa prompt, rồi mã hóa thành token văn bản bằng BiomedBERT hoặc NoBERT.
+    \item \textbf{Trục CNN kiểu U-Net:} ảnh đi qua stem, các tầng downsample và bottleneck để giữ chi tiết không gian, biên tổn thương và đặc trưng nhiều mức.
+    \item \textbf{LVFusionStage/ViT:} token ảnh chú ý chéo với token văn bản, sau đó qua Transformer block và chiếu ngược về feature map.
+    \item \textbf{EMA/EPI:} với dữ liệu chưa nhãn, teacher EMA tạo xác suất dự đoán, EPI làm mượt theo từng ảnh, rồi confidence mask lọc pseudo-label trước khi huấn luyện student.
+  \end{enumerate}
+  \smallnote{Văn bản không sinh mask trực tiếp; nó điều chỉnh đặc trưng ảnh trước khi decoder phục hồi mặt nạ phân đoạn.}
+\end{frame}
+
+\begin{frame}{Sơ đồ kiến trúc trong report}
+  \centering
+  \widefig[0.70\textheight]{../manuscript/figures/qatalvit_architecture_pipeline.png}
+  \smallnote{Bốn LVFusionStage nằm dọc encoder U-Net, nên token văn bản có thể tác động ở nhiều mức đặc trưng thay vì chỉ ở bottleneck.}
+\end{frame}
+
+\begin{frame}{Nhánh văn bản: vì sao prompt quan trọng}
+  \small
+  \begin{itemize}
+    \item Đầu vào văn bản là mô tả lâm sàng ngắn, thường chứa thông tin về bên phổi, số vùng tổn thương, vị trí tương đối và mức lan tỏa.
+    \item Prompt normalization đưa các cách viết khác nhau về dạng ổn định hơn, để token văn bản có thể điều hướng LVFusionStage thay vì trực tiếp sinh mask.
+    \item Report khảo sát hai text encoder thay thế nhau; phần U-Net, LVFusionStage, decoder và loss phía sau được giữ cùng nguyên tắc.
+  \end{itemize}
+  \vspace{0.08cm}
+  \begin{center}
+  \renewcommand{\arraystretch}{1.16}
+  \begin{tabularx}{0.95\textwidth}{lXX}
+    \toprule
+    \textbf{Option} & \textbf{Cách làm} & \textbf{Vai trò trong report} \\
+    \midrule
+    BiomedBERT & Encoder y sinh tiền huấn luyện. & Mốc chính trên QaTa-COV19 và MosMedData+ LightAU. \\
+    NoBERT & \texttt{nn.Embedding} + BiGRU nhẹ. & Ablation kiểm tra sức mạnh của prompt chuẩn hóa. \\
+    \bottomrule
+  \end{tabularx}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Hợp nhất ảnh--văn bản và học ít nhãn}
+  \twocolsummary
+  {LVFusionStage/ViT}
+  {
+    \begin{itemize}
+      \item Feature CNN được token hóa bằng PatchTokenizer.
+      \item Token ảnh đóng vai trò truy vấn; token văn bản đóng vai trò khóa/giá trị.
+      \item Sau chú ý chéo, ViT học quan hệ dài hơn rồi TokenToSpatial đưa đặc trưng về lại không gian ảnh.
+    \end{itemize}
+  }
+  {EMA/EPI}
+  {
+    \begin{itemize}
+      \item Dữ liệu có nhãn học trực tiếp từ ground truth.
+      \item Dữ liệu chưa nhãn dùng teacher EMA và EPI để tạo pseudo-label ổn định hơn.
+      \item Trên MosMedData+, cơ chế này cần dùng thận trọng vì teacher yếu có thể làm pseudo-label lệch về nền.
+    \end{itemize}
+  }
+  \smallnote{Đây là điểm nối giữa kiến trúc và thực nghiệm: cùng một pipeline có thể mạnh trên QaTa-COV19 nhưng cần hiệu chuẩn lại khi chuyển sang CT.}
+\end{frame}
+
+\begin{frame}{LVFusionStage và EMA/EPI trong report}
+  \centering
+  \widefig[0.70\textheight]{../manuscript/figures/qatalvit_lvfusion_ema_epi.png}
+  \smallnote{Phần trên mô tả cách token ảnh chú ý chéo với token văn bản; phần dưới tách rõ dữ liệu có nhãn và dữ liệu chưa nhãn trong EMA/EPI.}
+\end{frame}
+
+\begin{frame}{Thiết lập thực nghiệm}
+  \twocolsummary
+  {QaTa-COV19}
+  {
+    \begin{itemize}
+      \item Ảnh X-quang ngực, mask tổn thương và mô tả văn bản ngắn.
+      \item Đánh giá ở 25\%, 50\% và 100\% nhãn.
+      \item Dùng để kiểm chứng đầy đủ hiệu quả trong điều kiện ít nhãn.
+    \end{itemize}
+  }
+  {MosMedData+}
+  {
+    \begin{itemize}
+      \item CT lát cắt, nhiều nguồn ảnh và domain shift mạnh hơn.
+      \item Report chỉ dùng thí nghiệm mở rộng 50\% nhãn.
+      \item Dùng để kiểm tra chuyển miền và độ ổn định của pseudo-label/EMA/EPI.
+    \end{itemize}
+  }
+  \vspace{0.15cm}
+  \smallnote{Các mốc LViT-T/LViT-TW, DTC, PLCT, MC-Net+, LAVT và GLoRIA đóng vai trò đối sánh từ công bố hoặc baseline, không phải đóng góp chính của nhóm.}
+\end{frame}
+
+\begin{frame}{Bảng kết quả tổng hợp: mô hình ảnh đơn}
+  \centering
+  \tiny
+  \renewcommand{\arraystretch}{1.12}
+  \begin{tabular}{lccccccc}
+    \toprule
+    \textbf{Phương pháp} & \textbf{Backbone} & \textbf{Text} & \textbf{Nhãn} & \textbf{Param} & \textbf{FLOPs} & \textbf{QaTa Dice/mIoU} & \textbf{MosMed Dice/mIoU} \\
+    \midrule
+    U-Net & CNN & -- & 100\% & 14.8 & 50.3 & 79.02 / 69.46 & 64.60 / 50.73 \\
+    UNet++ & CNN & -- & 100\% & 74.5 & 94.6 & 79.62 / 70.25 & 71.75 / 58.39 \\
+    AttUNet & CNN & -- & 100\% & 34.9 & 101.9 & 79.31 / 70.04 & 66.34 / 52.82 \\
+    nnUNet & CNN & -- & 100\% & 19.1 & 412.7 & 80.42 / 70.81 & 72.59 / 60.36 \\
+    TransUNet & Hybrid & -- & 100\% & 105.0 & 56.7 & 78.63 / 69.13 & 71.24 / 58.44 \\
+    Swin-Unet & Hybrid & -- & 100\% & 82.3 & 67.3 & 78.07 / 68.34 & 63.29 / 50.19 \\
+    UCTransNet & Hybrid & -- & 100\% & 65.6 & 63.2 & 79.15 / 69.60 & 65.90 / 52.69 \\
+    \bottomrule
+  \end{tabular}
+  \smallnote{Nhóm mô hình ảnh đơn là nền để thấy lợi ích của việc đưa văn bản vào bài toán.}
+\end{frame}
+
+\begin{frame}{Bảng kết quả tổng hợp: mô hình có văn bản}
+  \centering
+  \tiny
+  \renewcommand{\arraystretch}{1.10}
+  \begin{tabular}{lccccccc}
+    \toprule
+    \textbf{Phương pháp} & \textbf{Backbone} & \textbf{Text} & \textbf{Nhãn} & \textbf{Param} & \textbf{FLOPs} & \textbf{QaTa Dice/mIoU} & \textbf{MosMed Dice/mIoU} \\
+    \midrule
+    ConVIRT & CNN & Có & 100\% & 35.2 & 44.6 & 79.72 / 70.58 & 72.06 / 59.73 \\
+    TGANet & CNN & Có & 100\% & 19.8 & 41.9 & 79.87 / 70.75 & 71.81 / 59.28 \\
+    CLIP & Hybrid & Có & 100\% & 87.0 & 105.3 & 79.81 / 70.66 & 71.97 / 59.64 \\
+    GLoRIA & Hybrid & Có & 100\% & 45.6 & 60.8 & 79.94 / 70.68 & 72.42 / 60.18 \\
+    ViLT & Hybrid & Có & 100\% & 87.4 & 55.9 & 79.63 / 70.12 & 72.36 / 60.15 \\
+    LAVT & Hybrid & Có & 100\% & 118.6 & 83.8 & 79.28 / 69.89 & 73.29 / 60.41 \\
+    \bottomrule
+  \end{tabular}
+  \smallnote{Các baseline thị giác--ngôn ngữ cho thấy thêm văn bản là cần thiết, nhưng cách hợp nhất quyết định mức tăng.}
+\end{frame}
+
+\begin{frame}{Bảng kết quả tổng hợp: LViT và QaTaLViT}
+  \centering
+  \tiny
+  \renewcommand{\arraystretch}{1.08}
+  \begin{tabular}{lccccc}
+    \toprule
+    \textbf{Phương pháp} & \textbf{Text} & \textbf{Nhãn} & \textbf{Param} & \textbf{FLOPs} & \textbf{QaTa Dice/mIoU} \\
+    \midrule
+    LViT-TW (1/4) & -- & 25\% & 28.0 & 54.0 & 79.08 / 69.42 \\
+    LViT-TW (1/2) & -- & 50\% & 28.0 & 54.0 & 80.35 / 70.74 \\
+    LViT-TW & -- & 100\% & 28.0 & 54.0 & 81.12 / 71.37 \\
+    LViT-T (1/4) & Có & 25\% & 29.7 & 54.1 & 80.95 / 71.31 \\
+    LViT-T (1/2) & Có & 50\% & 29.7 & 54.1 & 82.73 / 73.99 \\
+    LViT-T & Có & 100\% & 29.7 & 54.1 & 83.66 / 75.11 \\
+    QaTaLViT (1/4) & Có & 25\% & 32.3 & 67.8 & \textbf{82.22 / 73.35} \\
+    QaTaLViT (1/2) & Có & 50\% & 32.3 & 67.8 & \textbf{84.03 / 75.62} \\
+    QaTaLViT & Có & 100\% & 32.3 & 67.8 & \textbf{85.28 / 77.25} \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.15cm}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{MosMedData+ 50\% nhãn} & \textbf{Text} & \textbf{Dice} & \textbf{mIoU} \\
+    \midrule
+    LViT-TW công bố & -- & 71.89 & 59.63 \\
+    LViT-T công bố & Có & 73.56 & \textbf{61.05} \\
+    QaTaLViT-BioBERT + SO + LightAU & Có & \textbf{73.84} & 60.31 \\
+    \bottomrule
+  \end{tabular}
+  \smallnote{MosMedData+ chỉ được dùng như thí nghiệm mở rộng ở 50\% nhãn; slide không còn giữ ô chờ cho QaTaLViT 25\% hoặc 100\% trên MosMedData+.}
+\end{frame}
+
+\begin{frame}{Kết quả chính trên QaTa-COV19}
+  \begin{center}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.20}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Phương pháp trên QaTa-COV19} & \textbf{25\% nhãn} & \textbf{50\% nhãn} & \textbf{100\% nhãn} \\
+    \midrule
+    LViT baseline huấn luyện lại & 78.42 / 68.43 & 80.32 / 70.60 & 82.76 / 73.78 \\
+    LViT-T công bố & 80.95 / 71.31 & 82.73 / 73.99 & 83.66 / 75.11 \\
+    \textbf{QaTaLViT} & \textbf{82.22 / 73.35} & \textbf{84.03 / 75.62} & \textbf{85.28 / 77.25} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.15cm}
+  \begin{itemize}
+    \item QaTaLViT vượt LViT-T công bố ở cả 25\%, 50\% và 100\% nhãn.
+    \item Mức 50\% nhãn của QaTaLViT đạt 84.03 / 75.62, rất gần mốc 100\% nhãn và vượt LViT-T 50\% là 82.73 / 73.99.
+    \item Prompt chuẩn hóa và hợp nhất đa mức giúp rõ nhất khi lượng mask thật bị giới hạn.
+  \end{itemize}
+  \smallnote{Mỗi ô là Dice / mIoU (\%).}
+\end{frame}
+
+\begin{frame}{Bảng bán giám sát trên QaTa-COV19}
+  \centering
+  \scriptsize
+  \renewcommand{\arraystretch}{1.10}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Phương pháp} & \textbf{Text} & \textbf{Tỉ lệ nhãn} & \textbf{Dice} & \textbf{mIoU} \\
+    \midrule
+    DTC & -- & 25\% & 76.07 & 66.04 \\
+    PLCT & -- & 25\% & 76.65 & 66.71 \\
+    MC-Net+ & -- & 25\% & 76.93 & 67.02 \\
+    LViT-TW (1/4) & -- & 25\% & 79.08 & 69.42 \\
+    LAVT & Có & 25\% & 77.08 & 67.21 \\
+    GLoRIA & Có & 25\% & 77.32 & 67.48 \\
+    LViT-T (1/4) & Có & 25\% & 80.95 & 71.31 \\
+    \textbf{QaTaLViT} & Có & 25\% & \textbf{82.22} & \textbf{73.35} \\
+    \midrule
+    DTC & -- & 50\% & 77.23 & 67.42 \\
+    PLCT & -- & 50\% & 77.66 & 68.04 \\
+    MC-Net+ & -- & 50\% & 77.91 & 68.47 \\
+    LViT-TW (1/2) & -- & 50\% & 80.35 & 70.74 \\
+    LAVT & Có & 50\% & 77.96 & 68.53 \\
+    GLoRIA & Có & 50\% & 78.49 & 68.97 \\
+    LViT-T (1/2) & Có & 50\% & 82.73 & 73.99 \\
+    \textbf{QaTaLViT} & Có & 50\% & \textbf{84.03} & \textbf{75.62} \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\begin{frame}{Pseudo-label trên QaTa-COV19 50\%}
+  \centering
+  \widefig[0.63\textheight]{../manuscript/figures/qata50_analysis/qata50_pseudo_quality.png}
+  \smallnote{Pseudo-label holdout có Dice/mIoU cao và precision/recall khá cân bằng, nên EMA/EPI có cơ sở để hỗ trợ student trong thiết lập 50\% nhãn.}
+\end{frame}
+
+\begin{frame}{EMA/EPI trên QaTa-COV19 50\%}
+  \reportclaim{EMA/EPI là cơ chế hỗ trợ bán giám sát, nhưng bằng chứng chính trong report nằm ở chất lượng pseudo-label và kết quả ablation, không dựa vào biểu đồ động học.}
+  \begin{itemize}
+    \item Với dữ liệu có nhãn, student học trực tiếp từ ground truth bằng các loss phân đoạn và căn chỉnh ảnh--văn bản.
+    \item Với dữ liệu chưa nhãn, teacher EMA tạo xác suất dự đoán ổn định hơn student tại từng bước huấn luyện.
+    \item EPI làm mượt xác suất theo từng ảnh qua nhiều lần xuất hiện, sau đó confidence mask lọc pseudo-label trước khi đưa vào loss.
+    \item Trên QaTa-COV19 50\%, pseudo-label holdout đủ tốt để cơ chế này có ý nghĩa; trên MosMedData+ cần thận trọng hơn vì teacher yếu có thể kéo pseudo-label về nền.
+  \end{itemize}
+  \smallnote{Nội dung này khớp với phần phương pháp và thảo luận hiện tại: EMA/EPI là thành phần có điều kiện, không phải mặc định luôn cải thiện ở mọi miền dữ liệu.}
+\end{frame}
+
+\begin{frame}{Kết quả trên MosMedData+}
+  \begin{center}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.18}
+  \begin{tabular}{lccc}
+    \toprule
+    \textbf{Phương pháp trên MosMedData+} & \textbf{Text} & \textbf{Dice} & \textbf{mIoU} \\
+    \midrule
+    LViT-TW công bố, 50\% nhãn & -- & 71.89 & 59.63 \\
+    LViT-T công bố, 50\% nhãn & Có & 73.56 & \textbf{61.05} \\
+    QaTaLViT-BioBERT + SO + LightAU, 50\% nhãn & Có & \textbf{73.84} & 60.31 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.16cm}
+  \begin{itemize}
+    \item MosMedData+ khó hơn vì chuyển từ X-quang sang CT, nhiều nguồn ảnh và mask tổn thương nhỏ.
+    \item Ở 50\% nhãn, QaTaLViT đạt Dice 73.84, nhỉnh hơn LViT-T 73.56, nhưng mIoU 60.31 còn thấp hơn LViT-T 61.05.
+    \item Mức 50\% được chọn vì cân bằng giữa mask thật và dữ liệu chưa nhãn, phù hợp để kiểm tra pseudo-label/EMA/EPI.
+  \end{itemize}
+  \smallnote{Báo cáo không mở rộng MosMedData+ sang 100\% vì trọng tâm là kiểm tra các cơ chế liên quan đến pseudo-label.}
+\end{frame}
+
+\begin{frame}{Bảng mở rộng MosMedData+ 50\%}
+  \centering
+  \scriptsize
+  \renewcommand{\arraystretch}{1.10}
+  \begin{tabular}{llcc}
+    \toprule
+    \textbf{Thiết lập} & \textbf{Mô hình} & \textbf{Dice} & \textbf{mIoU} \\
+    \midrule
+    50\% & LViT-TW & 71.89 & 59.63 \\
+    50\% & LViT-T & 73.56 & 61.05 \\
+    50\% & QaTaLViT-BioBERT base & 68.88 & 55.14 \\
+    50\% & QaTaLViT-BioBERT + SO & 72.85 & 59.41 \\
+    50\% & QaTaLViT-NoBERT + SO & 72.99 & 59.48 \\
+    50\% & QaTaLViT-BioBERT + SO + LightAU & \textbf{73.84} & \textbf{60.31} \\
+    \bottomrule
+  \end{tabular}
+  \smallnote{MosMedData+ được dùng như thí nghiệm chuyển miền có kiểm soát ở 50\% nhãn, không phải ma trận đầy đủ 25\%--50\%--100\%.}
+\end{frame}
+
+\begin{frame}{Bảng ablation thành phần trên QaTa-COV19}
+  \centering
+  \tiny
+  \renewcommand{\arraystretch}{1.07}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lccccccc ccc}
+    \toprule
+    \textbf{Phương pháp} & \textbf{SSL} & \textbf{Prompt} & \textbf{Tăng} & \textbf{4-LVF} & \textbf{FT} & \textbf{Căn chỉnh} & \textbf{Recipe} & \textbf{25\%} & \textbf{50\%} & \textbf{100\%} \\
+    \midrule
+    Mốc nền (LViT) & -- & -- & -- & -- & -- & -- & -- & 78.42 / 68.43 & 80.32 / 70.60 & 83.06 / 74.08 \\
+    B0 & \(\checkmark\) & -- & -- & -- & -- & -- & -- & 77.49 / 67.19 & 79.54 / 69.71 & 82.76 / 73.78 \\
+    I1 & \(\checkmark\) & \(\checkmark\) & -- & -- & -- & -- & -- & 78.46 / 68.23 & 80.89 / 71.54 & 82.84 / 74.14 \\
+    I2 & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & -- & -- & -- & -- & 80.45 / 71.04 & 82.61 / 73.65 & 83.69 / 74.85 \\
+    I3 & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & -- & -- & -- & 78.96 / 69.22 & 82.61 / 73.64 & 83.05 / 74.45 \\
+    I4 & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & -- & -- & 81.37 / 72.10 & 82.51 / 73.54 & 83.75 / 75.03 \\
+    I5 & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & -- & 80.24 / 70.57 & 82.94 / 74.10 & 83.67 / 74.97 \\
+    QaTaLViT & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \(\checkmark\) & \textbf{82.22 / 73.35} & \textbf{84.03 / 75.62} & \textbf{85.28 / 77.25} \\
+    \bottomrule
+  \end{tabular}}
+  \smallnote{Chuỗi ablation là quá trình thay thế dần các thành phần của LViT bằng recipe QaTaLViT.}
+\end{frame}
+
+\begin{frame}{Bảng ablation siêu tham số}
+  \centering
+  \small
+  \renewcommand{\arraystretch}{1.18}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Biến thể} & \textbf{Thay đổi chính} & \textbf{Dice / mIoU} \\
+    \midrule
+    Recipe chuẩn & Batch 32, lr \(3\times10^{-4}\) & \textbf{84.03 / 75.62} \\
+    LR 1e-3 & Batch 32, lr \(1\times10^{-3}\) & 82.55 / 73.76 \\
+    LR 1e-4 & Batch 32, lr \(1\times10^{-4}\) & 83.57 / 74.99 \\
+    Global batch 16 & Batch 16, lr \(3\times10^{-4}\) & 83.63 / 75.18 \\
+    Global batch 32 & Batch 32, lr \(3\times10^{-4}\) & 83.66 / 75.09 \\
+    \bottomrule
+  \end{tabular}
+  \smallnote{Learning rate \(3\times10^{-4}\) là điểm vận hành ổn định nhất cho cấu hình QaTa-COV19 50\%.}
+\end{frame}
+
+\begin{frame}{Bảng ablation mã hóa văn bản}
+  \begin{itemize}
+    \item \textbf{Prompt normalization có tác dụng riêng:} từ B0 sang I1, kết quả 50\% nhãn tăng từ 79.54 / 69.71 lên 80.89 / 71.54.
+    \item \textbf{Hiệu quả là hiệu ứng toàn hệ thống:} LVFusionStage, Focal Tversky, căn chỉnh ảnh--văn bản và recipe cuối chỉ mạnh nhất khi phối hợp; từng thành phần riêng lẻ không giải thích hết mức tăng cuối.
+    \item \textbf{Text encoder không phải yếu tố duy nhất:} BiomedBERT nhỉnh hơn nhẹ trên QaTa-COV19, NoBERT lại rất cạnh tranh trên MosMedData+.
+  \end{itemize}
+  \vspace{0.10cm}
+  \begin{center}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.14}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Biến thể} & \textbf{QaTa 50\%} & \textbf{MosMed 50\%} \\
+    \midrule
+    B0: biểu diễn gần LViT & 79.54 / 69.71 & -- \\
+    I1: prompt chuẩn hóa & 80.89 / 71.54 & -- \\
+    QaTaLViT BiomedBERT & \textbf{84.03 / 75.62} & 72.85 / 59.41 \\
+    QaTaLViT NoBERT & 83.76 / 75.28 & \textbf{72.99 / 59.48} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Bảng ablation trên MosMedData+}
+  \begin{itemize}
+    \item \textbf{MosMedData+ nhạy với pseudo-label:} EMA/EPI không luôn tốt; teacher yếu có thể kéo student về nền, nên student-only là một lựa chọn có chủ đích.
+    \item \textbf{Crop-only/loss cleanup làm pipeline ổn định hơn:} khi bỏ các nguồn nhiễu từ pseudo-label yếu, Dice tăng từ 68.88 lên vùng 72--73.
+    \item \textbf{LightAU giúp chống lệch miền vừa phải:} affine và elastic deformation nhẹ cải thiện MosMedData+ mà không làm biến dạng phân bố CT quá mạnh.
+  \end{itemize}
+  \vspace{0.10cm}
+  \begin{center}
+  \scriptsize
+  \renewcommand{\arraystretch}{1.14}
+  \begin{tabular}{lc}
+    \toprule
+    \textbf{Biến thể MosMedData+ 50\%} & \textbf{Dice / mIoU} \\
+    \midrule
+    BiomedBERT ban đầu & 68.88 / 55.14 \\
+    BiomedBERT, thêm tiền xử lý & 70.36 / 56.97 \\
+    BiomedBERT, crop/loss cleanup, tắt EMA/EPI & 71.88 / 58.00 \\
+    NoBERT, crop/loss cleanup, tắt EMA/EPI & 72.69 / 58.99 \\
+    BiomedBERT + LightAU & \textbf{73.84 / 60.31} \\
+    NoBERT + LightAU & 72.77 / 59.22 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Giới hạn và hướng mở rộng}
+  \twocolsummary
+  {Giới hạn}
+  {
+    \begin{itemize}
+      \item MosMedData+ mới được phân tích sâu ở 50\% nhãn.
+      \item Hiệu quả phụ thuộc chất lượng chuẩn hóa prompt.
+      \item EMA/EPI cần hiệu chuẩn theo miền dữ liệu, nhất là với CT có tổn thương nhỏ.
+    \end{itemize}
+  }
+  {Hướng mở rộng}
+  {
+    \begin{itemize}
+      \item Mở rộng sang thêm tập CT độc lập để kiểm tra chuyển miền.
+      \item Tự động hóa chuyển báo cáo tự do thành prompt có cấu trúc.
+      \item Hiệu chuẩn lại pseudo-label theo nguồn ảnh và kích thước tổn thương.
+    \end{itemize}
+  }
+  \vspace{0.15cm}
+  \smallnote{Giới hạn không phủ nhận kết quả; chúng chỉ ra phần cần kiểm soát để đưa QaTaLViT sang dữ liệu y khoa đa nguồn ổn định hơn.}
+\end{frame}
+
+\begin{frame}{Kết luận high-level}
+  \reportclaim{QaTaLViT là một câu trả lời thực dụng cho bài toán phân đoạn y khoa ít nhãn có văn bản đi kèm.}
+  \begin{itemize}
+    \item Ảnh vẫn quyết định hình dạng mask; văn bản bổ sung ngữ cảnh về vị trí và mức độ tổn thương.
+    \item Prompt có cấu trúc giúp tín hiệu văn bản ổn định hơn trước khi đưa vào mạng phân đoạn.
+    \item Hợp nhất đa mức cho phép văn bản can thiệp vào nhiều tầng đặc trưng ảnh, không chỉ ở một điểm duy nhất.
+    \item Kết quả trên QaTa-COV19 chứng minh hiệu quả rõ ở 25\%, 50\% và 100\% nhãn; MosMedData+ cho thấy tiềm năng chuyển miền nhưng cần hiệu chuẩn pseudo-label thận trọng hơn.
+  \end{itemize}
+  \vspace{0.10cm}
+  \begin{block}{Thông điệp cuối}
+    Trong ảnh y khoa, câu hỏi không chỉ là có dùng văn bản hay không, mà là chuẩn hóa văn bản thế nào, đưa vào tầng thị giác nào và tin tín hiệu đó đến mức nào.
+  \end{block}
+\end{frame}
+
+\end{document}
+

@@ -1,0 +1,18 @@
+{
+  "best_val_epoch": 37,
+  "best_val_dice": 0.8009193896246257,
+  "best_val_iou": 0.7017035420079428,
+  "final_epoch": 60,
+  "final_train_dice": 0.959050820933448,
+  "final_val_dice": 0.801097893898432,
+  "final_test_dice": 0.8222981172323339,
+  "final_train_iou": 0.9227264258596632,
+  "final_val_iou": 0.7014539528343542,
+  "final_test_iou": 0.7327510053886941,
+  "pseudo_threshold_chunk1": 0.5499999999999999,
+  "pseudo_threshold_chunk2": 0.3999999999999999,
+  "pseudo_mean_sample_dice_chunk1": 0.8040364799568279,
+  "pseudo_mean_sample_dice_chunk2": 0.8049193957084437,
+  "pseudo_mean_sample_iou_chunk1": 0.7070205496398232,
+  "pseudo_mean_sample_iou_chunk2": 0.7078480368057996
+}

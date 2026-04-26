@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+title: "QaTaLViT: Text-Augmented Medical Image Segmentation under Limited Labels"
+message: "If you use this repository, please cite the report and the original LViT paper."
+type: software
+authors:
+  - family-names: "Luu"
+    given-names: "Huy Minh Quang"
+  - family-names: "Truong"
+    given-names: "Quoc Cuong"
+repository-code: "https://github.com/TQC0103/QaTaLViT"
+license: MIT
+references:
+  - type: article
+    title: "LViT: Language Meets Vision Transformer in Medical Image Segmentation"
+    authors:
+      - family-names: "Li"
+        given-names: "Zihan"
+      - family-names: "Li"
+        given-names: "Yunxiang"
+      - family-names: "Li"
+        given-names: "Qingde"
+      - family-names: "Wang"
+        given-names: "Puyang"
+      - family-names: "Guo"
+        given-names: "Dazhou"
+      - family-names: "Lu"
+        given-names: "Le"
+      - family-names: "Jin"
+        given-names: "Dakai"
+      - family-names: "Zhang"
+        given-names: "You"
+      - family-names: "Hong"
+        given-names: "Qingqi"
+    journal: "IEEE Transactions on Medical Imaging"
+    year: 2023

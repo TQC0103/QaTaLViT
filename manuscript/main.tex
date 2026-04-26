@@ -1,0 +1,138 @@
+﻿% !TEX TS-program = xelatex
+% !TEX encoding = UTF-8 Unicode
+\documentclass[conference,a4paper]{IEEEtran}
+\raggedbottom
+
+% ============================================
+% DOCUMENT METADATA
+% ============================================
+\newcommand{\coursename}{Thị giác máy tính}
+\newcommand{\coursecode}{CSC16004}
+\newcommand{\classname}{23TGMT}
+\newcommand{\semester}{2}
+\newcommand{\academicyear}{2025--2026}
+\newcommand{\studentone}{Lưu Huy Minh Quang}
+\newcommand{\studentoneid}{23127016}
+\newcommand{\studentoneemail}{lhmquang232@clc.fitus.edu.vn}
+\newcommand{\studentonephone}{0971309547}
+\newcommand{\studenttwo}{Trương Quốc Cường}
+\newcommand{\studenttwoid}{23127333}
+\newcommand{\studenttwoemail}{tqcuong23@clc.fitus.edu.vn}
+\newcommand{\studenttwophone}{0941851799}
+\newcommand{\advisorone}{TS. Võ Hoài Việt}
+\newcommand{\advisoroneDepartment}{Bộ môn Thị giác máy tính và Điều khiển học thông minh}
+\newcommand{\advisoroneFaculty}{Khoa Công nghệ Thông tin, Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM}
+\newcommand{\advisortwo}{ThS. Phạm Minh Hoàng}
+\newcommand{\advisorthree}{ThS. Phạm Thanh Tùng}
+\newcommand{\reportplace}{Thành phố Hồ Chí Minh}
+\newcommand{\reportdate}{ngày 26 tháng 4 năm 2026}
+\newcommand{\papertitlevn}{QaTaLViT: phân đoạn ảnh y khoa kết hợp văn bản\\ trong điều kiện nhãn hạn chế}
+
+% ============================================
+% PACKAGES
+% ============================================
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\usepackage{microtype}
+\usepackage{etoolbox}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{calc,matrix,arrows.meta,shapes.geometric}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{cite}
+\usepackage{textcomp}
+
+% ============================================
+% FONT / LANGUAGE
+% ============================================
+\setmainfont{TeX Gyre Termes}
+\setsansfont{TeX Gyre Heros}
+\setmonofont{TeX Gyre Cursor}
+\newfontfamily\titlefontvn{TeX Gyre Termes}
+\setmainlanguage{vietnamese}
+\setotherlanguage{english}
+
+% ============================================
+% FORMATTING HELPERS
+% ============================================
+\graphicspath{{figures/}{assets/}}
+\setlength{\emergencystretch}{4em}
+\hbadness=10000
+\vbadness=10000
+\setlist[itemize]{leftmargin=*,labelsep=0.5em}
+\setlist[itemize,2]{label=\textopenbullet}
+\BeforeBeginEnvironment{itemize}{\par}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcommand{\tablenotesep}{\par\vspace*{1.15\baselineskip}}
+\providecommand{\parencite}[1]{\cite{#1}}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\refname}{Tài liệu tham khảo}
+\renewcommand{\IEEEkeywordsname}{Từ khóa}
+\fancypagestyle{ieeepagenum}{%
+  \fancyhf{}%
+  \fancyhead[R]{\scriptsize\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
+
+% ============================================
+% TITLE / AUTHOR
+% ============================================
+\title{{\titlefontvn\papertitlevn}}
+\author{
+\IEEEauthorblockN{\studentone{} , \studenttwo{} }
+\IEEEauthorblockA{
+\begin{tabular}[t]{c}
+Khoa Công nghệ Thông tin, Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM\\
+\end{tabular}
+}
+}
+
+% ============================================
+% DOCUMENT
+% ============================================
+\begin{document}
+
+\pagenumbering{gobble}
+\onecolumn
+\input{cover.tex}
+\clearpage
+\input{info.tex}
+\clearpage
+
+\twocolumn
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\maketitle
+\pagestyle{ieeepagenum}
+\thispagestyle{ieeepagenum}
+
+\begin{abstract}
+Học sâu đã được ứng dụng rộng rãi trong phân đoạn ảnh y khoa, nhưng hiệu năng của các mô hình hiện có vẫn bị giới hạn bởi chi phí gán nhãn mặt nạ mức pixel rất cao và sự khác biệt lớn giữa các nguồn ảnh. Để giảm phụ thuộc vào dữ liệu có nhãn đầy đủ, báo cáo này đề xuất QaTaLViT, một mô hình phân đoạn ảnh y khoa có tăng cường văn bản dựa trên hướng tiếp cận của LViT. Ý tưởng chính là khai thác mô tả lâm sàng đi kèm ảnh như một nguồn tri thức bổ sung cho tín hiệu thị giác, đồng thời dùng cơ chế teacher--student và nhãn giả để tận dụng dữ liệu chưa nhãn trong thiết lập bán giám sát. Thay vì xem văn bản như một mô-đun độc lập, QaTaLViT chuẩn hóa mô tả y khoa thành tín hiệu ngắn gọn, có cấu trúc và đưa tín hiệu này vào quá trình học đặc trưng ảnh. Mô hình được đánh giá đầy đủ trên QaTa-COV19 với ảnh X-quang và được mở rộng thử nghiệm trên MosMedData+ với ảnh CT ở mức 50\% nhãn, nơi dữ liệu thật và dữ liệu chưa nhãn còn đủ cân bằng để kiểm tra các cơ chế liên quan đến pseudo-label. Dựa trên kết quả thực nghiệm, QaTaLViT cho thấy khả năng cải thiện hiệu năng phân đoạn so với phương pháp trước đó, qua đó nhấn mạnh vai trò của văn bản y khoa như một nguồn thông tin bổ trợ cho ảnh. Chi tiết thực nghiệm và tài nguyên đi kèm được cung cấp tại \url{https://github.com/TQC0103/QaTaLViT}.
+\end{abstract}
+
+\begin{IEEEkeywords}
+phân đoạn ảnh y khoa, học bán giám sát, hợp nhất thị giác--ngôn ngữ, prompt normalization, nhãn giả, QaTa-COV19, MosMedData+
+\end{IEEEkeywords}
+
+\input{sections/content_main.tex}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

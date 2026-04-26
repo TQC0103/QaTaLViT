@@ -1,15 +1,22 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
-.tmp_*/
-dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
 
 # Local datasets and experiment outputs
 data/
+datasets/
 runs/
 outputs/
 checkpoints/
+wandb/
+mlruns/
 
 # Large model artifacts
 *.pt
@@ -17,13 +24,25 @@ checkpoints/
 *.ckpt
 *.safetensors
 
+# Generated bundles and submission packages
+dist/
+dist_*/
+submission/
+*.zip
+*.rar
+
 # Local credentials and notebook cache
 kaggle.json
 .kaggle/
 .ipynb_checkpoints/
 
+# Editor and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
 # LaTeX auxiliary/build artifacts
-report/build/
 *.aux
 *.bbl
 *.bcf
@@ -33,7 +52,13 @@ report/build/
 *.lof
 *.log
 *.lot
+*.nav
 *.out
 *.run.xml
+*.snm
 *.synctex.gz
 *.toc
+texput.log
+manuscript/build/
+slides/build/
+slides/preview*/
